@@ -10,7 +10,7 @@ def load_data(option):
     # Połączenie z bazą danych SQLite3
     conn = sqlite3.connect('db_zapasy.db')
 
-    if option == "Zamówienia od dostawcy":
+    if option == "Terminowość dostaw":
         # Zapytanie SQL dla dostawców
         query = """
         SELECT 
@@ -23,7 +23,7 @@ def load_data(option):
         FROM Dostawy DS
         JOIN Dostawcy D ON DS.id_dostawca = D.id_dostawca;
         """
-    elif option == "Zamówienia dla klienta":
+    elif option == "Terminowość wysyłek":
         # Zapytanie SQL dla klientów
         query = """
         SELECT 
@@ -46,16 +46,16 @@ def load_data(option):
     return df
 
 # Wczytanie danych
-option = st.sidebar.radio("Wybierz dane do wyświetlenia", ("Zamówienia od dostawcy", "Zamówienia dla klienta"))
+option = st.sidebar.radio("Wybierz dane do wyświetlenia", ("Terminowość dostaw", "Terminowość wysyłek"))
 df = load_data(option)
 
 # Wyświetlenie tytułu
-st.title('Wskaźnik terminowości dostaw OTIF - On Time In Full')
+st.title('Wskaźnik terminowości zamówień')
 
 # Funkcja do wyświetlania danych dla dostawców
 def display_supplier_data(df):
 
-    st.subheader("Terminowość realizacji zamówień od dostawców")
+    st.subheader("Terminowość realizacji dostaw")
 
     # Wybór wartości do wyświetlenia na wykresie
     selected_values = st.multiselect("Wybierz status dostawy", df['Status dostawy'].unique(), default=[])
@@ -203,10 +203,10 @@ def display_supplier_data(df):
     # Dodanie linii oddzielającej
     st.markdown("---")
 
-# Funkcja do wyświetlania danych dla klientów
+# Funkcja do wyświetlania danych do klientów
 def display_customer_data(df):
 
-    st.subheader("Terminowość realizacji zamówień dla klientów")
+    st.subheader("Terminowość realizacji wysyłek")
 
     # Wybór wartości do wyświetlenia na wykresie
     selected_values = st.multiselect("Wybierz status wysyłki", df['Status wysyłki'].unique(), default=[])
@@ -354,7 +354,7 @@ def display_customer_data(df):
     st.markdown("---")
 
 # Wybierz, którą opcję wyświetlić
-if option == "Zamówienia od dostawcy":
+if option == "Terminowość dostaw":
     display_supplier_data(df)
-elif option == "Zamówienia dla klienta":
+elif option == "Terminowość wysyłek":
     display_customer_data(df)

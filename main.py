@@ -21,7 +21,8 @@ def main():
     - **Stany Zapasów (📦):** Śledź aktualne stany zapasów produktów oraz monitoruj ich zmiany w czasie.
     - **Braki Magazynowe (⚠️):** Otrzymuj informację o brakach magazynowych i podejmuj odpowiednie działania w celu ich rozwiązania.
     - **Analiza ABC (📊):** Analizuj produkty pod kątem ich wartości i znaczenia dla działalności, aby lepiej zarządzać zapasami.
-    - **Terminowość Dostaw (🚚):** Monitoruj terminowość dostaw oraz identyfikuj opóźnienia w celu optymalizacji procesów logistycznych.
+    - **Terminowość zamówień (🚚):** Monitoruj terminowość dostaw oraz wysyłek oraz identyfikuj opóźnienia w celu optymalizacji procesów logistycznych.
+    - **Czas realizacji zamówień(⏱️):** Monitoruj czas, jaki zajmuje realizacja dostaw oraz zamówień, aby zapewnić terminowe dostawy i optymalizować procesy logistyczne.
     - **Procent Wypełnienia Magazynu (📈):** Sprawdzaj stopień wypełnienia magazynu i podejmuj decyzje dotyczące jego optymalnego wykorzystania.
     """)
 
@@ -34,8 +35,10 @@ def main():
             Page("pages/2_stany_zapasow.py", "Stany zapasów", "📦"),
             Page("pages/3_braki_magazynowe.py", "Braki magazynowe", "⚠️"),
             Page("pages/4_analiza_abc.py", "Analiza ABC", "📊"),
-            Page("pages/5_terminowosc_dostaw.py", "Terminowość dostaw", "🚚"),
-            Page("pages/6_wypelnienie_magazynow.py", "Wypełnienie magazynów", "📈"),
+            Page("pages/5_terminowosc_dostaw.py", "Terminowość zamówień", "🚚"),
+            Page("pages/6_realizacja_dostaw.py", "Czas realizacji zamówień", "⏱️"),
+            Page("pages/7_wypelnienie_magazynow.py", "Wypełnienie magazynów", "📈")
+
         ]
     )
 

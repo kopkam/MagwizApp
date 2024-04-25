@@ -20,21 +20,22 @@ CREATE TABLE Produkty (
 );
 
 CREATE TABLE Magazyny (
-    id_magazynu INT IDENTITY(1,1) PRIMARY KEY,
-    nazwa_magazynu VARCHAR(255) NOT NULL
-    -- inne atrybuty magazynów...
+    id_magazyn INT IDENTITY(1,1) PRIMARY KEY,
+    nazwa_magazynu VARCHAR(255) NOT NULL,
+    pojemnosc INT
 );
 
 CREATE TABLE StanyMagazynowe (
     id_stan INT IDENTITY(1,1) PRIMARY KEY,
+    data_stanu DATE,
     kod_produktu INT,
-    id_magazynu INT,
+    id_magazyn INT,
     ilosc_na_stanie INT,
-    ilosc_dostepna INT,
     ilosc_zarezerwowana INT,
+    ilosc_dostepna INT,
     -- inne atrybuty stanów magazynowych...
     FOREIGN KEY (kod_produktu) REFERENCES Produkty(kod_produktu),
-    FOREIGN KEY (id_magazynu) REFERENCES Magazyny(id_magazynu)
+    FOREIGN KEY (id_magazyn) REFERENCES Magazyny(id_magazyn)
 );
 
 CREATE TABLE Klienci (
@@ -48,7 +49,7 @@ CREATE TABLE Zamowienia (
     data_zamowienia DATE,
     oczekiwany_termin_wysylki DATE,
     data_wysylki DATE,
-    status VARCHAR(255),
+    status_wysylki VARCHAR(255),
     kanal_sprzedazy VARCHAR(255),
     -- inne atrybuty zamówień...
     FOREIGN KEY (id_klient) REFERENCES Klienci(id_klient)
@@ -70,7 +71,7 @@ CREATE TABLE Dostawy (
     data_zamowienia DATE,
     oczekiwana_data_dostawy DATE,
     data_dostawy DATE,
-    status VARCHAR(255),
+    status_dostawy VARCHAR(255),
     -- inne atrybuty dostaw...
     FOREIGN KEY (id_dostawca) REFERENCES Dostawcy(id_dostawca)
 );

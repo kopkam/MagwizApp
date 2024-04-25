@@ -92,7 +92,7 @@ def main():
     available_dates = load_available_dates()
 
     # Wyświetlenie tytułu
-    st.title('Wskaźnik wypełnienia magazynu')
+    st.title('Wskaźnik wypełnienia magazynów')
 
     # Wybór daty
     selected_date = st.selectbox("Wybierz datę", available_dates, index=len(available_dates)-1)
