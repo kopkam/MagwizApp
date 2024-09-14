@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import os
+import datetime
 
 # Funkcja do pobierania nazw istniejących tabel z bazy danych
 def get_table_names(conn):
@@ -10,7 +11,34 @@ def get_table_names(conn):
     tables = cursor.fetchall()
     return [table[0] for table in tables]
 
-# Funkcja do pobierania pierwszych i ostatnich rekordów z wybranej tabeli
+# Funkcja do pobierania nazw istniejących tabel z bazy danych wraz z rozmiarem pliku Excel i datą ostatniej modyfikacji
+def get_table_names_with_excel_info(conn, folder_path):
+    # Utworzenie kursora do wykonywania poleceń SQL
+    cursor = conn.cursor()
+    # Wykonanie zapytania SQL w celu pobrania nazw wszystkich tabel z bazy danych SQLite
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    # Pobranie wyników zapytania (nazw tabel)
+    tables = cursor.fetchall()
+    # Lista do przechowywania informacji o tabelach
+    table_names_with_info = []
+    # Iteracja po każdej nazwie tabeli
+    for table in tables:
+        table_name = table[0]  # Pobranie nazwy tabeli
+        excel_file = f"{table_name}.xlsx"  # Utworzenie nazwy pliku Excel odpowiadającego tabeli
+        excel_path = os.path.join(folder_path, excel_file)  # Utworzenie ścieżki do pliku Excel
+        # Sprawdzenie, czy plik Excel istnieje
+        if os.path.exists(excel_path):
+            size_bytes = os.path.getsize(excel_path)  # Pobranie rozmiaru pliku w bajtach
+            size_mb = size_bytes / (1024 * 1024)  # Konwersja rozmiaru na megabajty
+            modification_time = os.path.getmtime(excel_path)  # Pobranie czasu modyfikacji pliku
+            modification_time_str = datetime.datetime.fromtimestamp(modification_time).strftime(
+                '%d-%m-%Y %H:%M:%S')  # Formatowanie daty modyfikacji
+            # Dodanie informacji o tabeli do listy
+            table_names_with_info.append((table_name, size_mb, modification_time_str))
+    # Zwrócenie listy z informacjami o tabelach
+    return table_names_with_info
+
+# Funkcja do pobierania rekordów z wybranej tabeli
 def get_first_last_records(conn, table_name):
     query = f"SELECT * FROM {table_name}"
     df = pd.read_sql_query(query, conn)
@@ -34,15 +62,15 @@ def remove_duplicates(conn, table_name):
 def update_data(conn):
     folder_path = 'Dane'
     excel_files = {
-        'Dostawcy.xlsx': 'Dostawcy',
-        'Produkty.xlsx': 'Produkty',
-        'Magazyny.xlsx': 'Magazyny',
-        'StanyMagazynowe.xlsx': 'StanyMagazynowe',
-        'Klienci.xlsx': 'Klienci',
-        'Zamówienia.xlsx': 'Zamowienia',
-        'ZamówieniaSzczegóły.xlsx': 'ZamowieniaSzczegoly',
-        'Dostawy.xlsx': 'Dostawy',
-        'DostawySzczegóły.xlsx': 'DostawySzczegoly'
+        'dostawcy.xlsx': 'Dostawcy',
+        'produkty.xlsx': 'Produkty',
+        'magazyny.xlsx': 'Magazyny',
+        'stany_magazynowe.xlsx': 'StanyMagazynowe',
+        'klienci.xlsx': 'Klienci',
+        'zamowienia.xlsx': 'Zamowienia',
+        'zamowienia_szczegoly.xlsx': 'ZamowieniaSzczegoly',
+        'dostawy.xlsx': 'Dostawy',
+        'dostawy_szczegoly.xlsx': 'DostawySzczegoly'
     }
 
     for excel_file, table_name in excel_files.items():
@@ -74,12 +102,14 @@ def update_data(conn):
         else:
             st.write(f"Plik '{excel_file}' nie istnieje. Pomijanie...")
 
+
 # Połączenie z bazą danych SQLite
 conn = sqlite3.connect('DB_ZAPASY.db')
 
+
 # Strona Streamlit
 def main():
-    st.title('Aktualizacja danych pochodzących z plików Excel')
+    st.title('Aktualizacja danych pobieranych z plików Excel')
 
     # Przycisk do aktualizacji plików
     update_button = st.button("Aktualizuj dane")
@@ -90,28 +120,28 @@ def main():
         update_data(conn)
         st.write("Aktualizacja zakończona.")
         # Wyświetl przycisk do wyczyszczenia komunikatów tylko jeśli wykonano aktualizację
-        st.button("Wyczyść")
+        st.button("Wyczyść komunikat")
 
-    st.title('Wyświetlanie nazw dostępnych plików')
-    st.markdown('---')
+    st.title('Dostępne pliki Excel')
     
     # Przyciski do wyświetlenia/ukrycia tabel
-    show_files = st.button('Pokaż pliki')
+    show_files = st.button('Pokaż informację')
     hide_files = False
 
     if show_files:
-        table_names = get_table_names(conn)
-        if table_names:
-            st.write("Dostępne pliki:")
-            for table_name in table_names:
-                st.write(f"- {table_name}")
+        folder_path = 'Dane'
+        table_names_with_info = get_table_names_with_excel_info(conn, folder_path)
+        if table_names_with_info:
+            for table_name, size_mb, modification_time_str in table_names_with_info:
+                st.write(f"- {table_name}.xlsx (rozmiar: {size_mb:.2f} MB, ostatnia modyfikacja: {modification_time_str})")
         else:
             st.write("Brak plików.")
-        hide_files = st.button('Ukryj pliki')
+        hide_files = st.button('Ukryj informację')
 
     if hide_files:
         st.text("Pliki ukryte.")
 
+    st.markdown('---')
     st.title('Wyświetlanie zawartości plików')
 
     table_names = get_table_names(conn)

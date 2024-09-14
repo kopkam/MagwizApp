@@ -3,17 +3,22 @@ from st_pages import Page, show_pages, add_page_title
 
 
 def main():
+    # Wyświetlanie wycentrowanego loga aplikacji
     left_co, cent_co, cent_co2, last_co = st.columns(4)
     with cent_co:
-        st.image(r'C:\Users\marcin\Magwiz\MAGWIZ.png', width=350)
-    st.markdown("<h1 style='text-align: center; color: black;'>Skutecznie zarządzaj zapasami w magazynie</h1>", unsafe_allow_html=True)
+        st.image('MAGWIZ.png', width=350)
+    # Wyświetlanie tekstu pod logiem z uzyciem kodu HTML
+    st.markdown("<h1 style='text-align: center; color: black;'>Skutecznie zarządzaj zapasami w magazynie</h1>", 
+                unsafe_allow_html=True)
+    # Wyświetlanie kreski oddzielającej
     st.markdown("---")
+    # Wyświetlanie tekstu pod kreską
     st.write(
         """
         Prosta w obsłudze aplikacja Magwiz to narzędzie usprawniające przepływ zapasów
         w magazynie. Wszystkie niezbędne funkcje w jednym miejscu! 
-        """
-    )
+        """)
+    
     # Opis funkcji
     st.header('Funkcje:')
     st.markdown("""
@@ -23,7 +28,7 @@ def main():
     - **Analiza ABC (📊):** Analizuj produkty pod kątem ich wartości i znaczenia dla działalności, aby lepiej zarządzać zapasami.
     - **Terminowość zamówień (🚚):** Monitoruj terminowość dostaw oraz wysyłek oraz identyfikuj opóźnienia w celu optymalizacji procesów logistycznych.
     - **Czas realizacji zamówień(⏱️):** Monitoruj czas, jaki zajmuje realizacja dostaw oraz zamówień, aby zapewnić terminowe dostawy i optymalizować procesy logistyczne.
-    - **Procent Wypełnienia Magazynu (📈):** Sprawdzaj stopień wypełnienia magazynu i podejmuj decyzje dotyczące jego optymalnego wykorzystania.
+    - **Wypełnienie magazynów (📈):** Sprawdzaj stopień wypełnienia magazynów i podejmuj decyzje dotyczące jego optymalnego wykorzystania.
     """)
 
     st.write("Proszę wybrać jedną z opcji z panelu po lewej stronie.")
@@ -44,3 +49,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

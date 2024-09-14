@@ -21,7 +21,7 @@ def load_data(selected_warehouses, selected_date):
     query = f"""
     SELECT 
         m.nazwa_magazynu,
-        ROUND((SUM(p.objetosc_sztuki * sm.ilosc_na_stanie) / m.pojemnosc) * 100, 2) AS procent_wypelnienia
+        ROUND((SUM(p.objetosc_m3 * sm.ilosc_na_stanie) / m.pojemnosc) * 100, 2) AS procent_wypelnienia
     FROM 
         Magazyny m
     INNER JOIN 
@@ -80,7 +80,7 @@ def create_gauge_chart(value, magazyn):
 # Funkcja do wczytywania dostępnych dat
 def load_available_dates():
     conn = sqlite3.connect('db_zapasy.db')
-    query = "SELECT DISTINCT DATE(data_stanu) as available_date FROM StanyMagazynowe"
+    query = "SELECT DISTINCT DATE(data_stanu) as available_date FROM StanyMagazynowe ORDER BY available_date ASC"
     dates = pd.read_sql_query(query, conn)['available_date'].tolist()
     conn.close()
     return dates
@@ -116,8 +116,11 @@ def main():
 
         # Wyświetlenie wykresów prędkościomierza dla każdego magazynu
         for magazyn, procent in zip(df['nazwa_magazynu'], df['procent_wypelnienia']):
+            # Tworzenie wykresu prędkościomierza dla danego magazynu
             fig = create_gauge_chart(procent, magazyn)
+            # Wyświetlenie tytułu wykresu zawierającego nazwę magazynu
             st.write(f"## Wykres dla magazynu '{magazyn}'")
+            # Wyświetlenie wykresu prędkościomierza
             st.plotly_chart(fig)
 
 if __name__ == "__main__":

@@ -23,8 +23,6 @@ def load_data(conn):
         ORDER BY sm.data_stanu, p.nazwa_produktu
     """
     df = pd.read_sql_query(query, conn)
-    df['Dzień Stanu'] = pd.to_datetime(df['Dzień Stanu'])
-    df['Dzień Stanu'] = df['Dzień Stanu'].dt.strftime('%d-%m-%Y')
     return df
 
 # Funkcja do generowania wykresu
@@ -47,12 +45,12 @@ def generate_plot(df, selected_dates, search_term):
 
         fig.add_trace(go.Bar(
             name=f'{date}',
-            x=['Ilość Dostępna', 'Braki Magazynowe'],
+            x=['Ilość dostępna', 'Ilość minimalna'],
             y=[filtered_df['Ilość Dostępna'].sum(), shortages],
             marker_color=colors[i % len(colors)]  # Użyj reszty z dzielenia do cyklicznego wyboru kolorów, jeśli jest więcej dat niż kolorów
         ))
 
-    fig.update_layout(title='Ilość Dostępna vs. Braki Magazynowe', barmode='group')
+    fig.update_layout(title='Wykres dostępności produktów i minimalnej ilości produktów', barmode='group')
     return fig
 
 # Funkcja do pobierania danych i generowania wykresu
@@ -66,12 +64,16 @@ def main():
     latest_date = df['Dzień Stanu'].max()
 
     selected_dates = st.multiselect('Wybierz daty do filtrowania:', df['Dzień Stanu'].unique(), default=[latest_date])
+    
 
     # Jeśli nie wybrano żadnej daty, użyj najnowszej dostępnej daty
     if not selected_dates:
         selected_dates = [latest_date]
 
     search_term = st.text_input("Wprowadź nazwę produktu do filtrowania:")
+
+    # Dodajemy kolumnę "Różnica Zapasu"
+    df['Brakująca ilość'] = df['Zapas Bezpieczeństwa'] - df['Ilość Dostępna']
 
     # Wyświetlanie tabeli danych
     filtered_df = df[df['Dzień Stanu'].isin(selected_dates)]
@@ -94,8 +96,13 @@ def main():
 
     # Liczba braków magazynowych dla każdej wybranej daty
     for date in selected_dates:
+        # Filtracja danych dla konkretnej daty
         filtered_date_df = filtered_df[filtered_df['Dzień Stanu'] == date]
+
+        #Obliczenie liczby magazynów dla wybranej daty
         shortages_date = abs(filtered_date_df['Ilość Dostępna'] - filtered_date_df['Zapas Bezpieczeństwa']).sum()
+
+        #Wyświetlenie liczby braków magazynowych jako miary w aplikacji Streamlit
         st.metric(label=f"Braki magazynowe dla daty {date}", value=int(shortages_date))
 
     st.markdown('---')

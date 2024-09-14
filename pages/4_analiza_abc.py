@@ -27,14 +27,20 @@ def load_data():
 
 # Funkcja do analizy ABC
 def analyze_abc(df):
+    # Obliczenie sumy sprzedaży dla każdego produktu
     df['Suma Sprzedaży'] = df.groupby(['nazwa_produktu'])['ilosc_sprzedazy'].transform('sum')
+    # Obliczenie procentowego udziału sprzedaży dla każdego produktu
     df['Procent Sprzedaży'] = df['Suma Sprzedaży'] / df['Suma Sprzedaży'].sum() * 100
+    # Sortowanie danych według procentowego udziału sprzedaży malejąco
     df.sort_values(by='Procent Sprzedaży', ascending=False, inplace=True)
+    # Obliczenie narastającego procentowego udziału sprzedaży
     df['Narastająco'] = df['Procent Sprzedaży'].cumsum()
+    # Przypisanie kategorii ABC na podstawie narastającego procentowego udziału sprzedaży
     df['Analiza ABC'] = pd.cut(df['Narastająco'], bins=[0, 20, 50, 100], labels=['A', 'B', 'C'])
+    # Zaokrąglenie procentowego udziału sprzedaży i narastającego oraz dodanie symbolu '%'
     df['Procent Sprzedaży'] = df['Procent Sprzedaży'].round(5).astype(str) + '%'
     df['Narastająco'] = df['Narastająco'].round(5).astype(str) + '%'
-    df.drop_duplicates(subset=['nazwa_produktu'], keep='first', inplace=True)
+    # Zwrócenie przetworzonej ramki danych
     return df
 
 # Funkcja do wyświetlania metryk

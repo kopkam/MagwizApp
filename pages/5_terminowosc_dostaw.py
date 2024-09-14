@@ -39,10 +39,9 @@ def load_data(option):
 
     # Wykonanie zapytania i wczytanie wyników do ramki danych
     df = pd.read_sql_query(query, conn)
-
     # Zamknięcie połączenia z bazą danych
     conn.close()
-
+    # Zwrócenie ramki danych
     return df
 
 # Wczytanie danych
@@ -100,7 +99,7 @@ def display_supplier_data(df):
         st.download_button(
             label="Pobierz jako plik Excel",
             data=output.getvalue(),
-            file_name="otif_dostawcy.xlsx",
+            file_name="terminowosc_dostawcy.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
@@ -200,9 +199,6 @@ def display_supplier_data(df):
 
         st.markdown(supplier_info, unsafe_allow_html=True)
 
-    # Dodanie linii oddzielającej
-    st.markdown("---")
-
 # Funkcja do wyświetlania danych do klientów
 def display_customer_data(df):
 
@@ -251,7 +247,7 @@ def display_customer_data(df):
         st.download_button(
             label="Pobierz jako plik Excel",
             data=output.getvalue(),
-            file_name="otif_klienci.xlsx",
+            file_name="terminowosc_klienci.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
@@ -349,9 +345,6 @@ def display_customer_data(df):
         # Tworzenie informacji o kliencie w podobnym stylu
         customer_info = f"<div style='display:flex; justify-content: space-between;'><div style='text-align: center; padding-right: 10px;'><h3 style='word-wrap: break-word;'>{customer_label}</h3><p>{max_record['Nazwa klienta']}</p></div><div style='text-align: center;'><h3>{record_label}</h3><p>{max_record['Liczba rekordów']}</p></div></div>"
         st.markdown(customer_info, unsafe_allow_html=True)
-
-    # Dodanie linii oddzielającej
-    st.markdown("---")
 
 # Wybierz, którą opcję wyświetlić
 if option == "Terminowość dostaw":

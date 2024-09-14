@@ -62,7 +62,7 @@ def get_chart_data(selected_dates, selected_magazines):
 
 def main():
     conn = connect_db()
-    dates_query = "SELECT DISTINCT DATE(data_stanu) AS data_stanu FROM StanyMagazynowe;"
+    dates_query = "SELECT DISTINCT DATE(data_stanu) AS data_stanu FROM StanyMagazynowe ORDER BY data_stanu ASC;"
     dates = pd.read_sql_query(dates_query, conn)['data_stanu'].tolist()
     magazines_query = "SELECT DISTINCT nazwa_magazynu FROM Magazyny;"
     magazines = pd.read_sql_query(magazines_query, conn)['nazwa_magazynu'].tolist()
@@ -94,15 +94,26 @@ def main():
     if selected_dates:
         for date in selected_dates:
             total_quantity_date = df[df['Data stanu'] == date]['Dostępna ilość'].sum()
-            st.metric(label=f"Łączna ilość dostęnych produktów dla daty {date}", value=total_quantity_date)
+            st.metric(label=f"Łączna ilość dostęnych produktów dla daty {date}", value=int(total_quantity_date))
         st.markdown('---')
 
     if not df.empty:
+        # Pobranie danych do wykresu na podstawie wybranych dat i magazynów
         chart_df = get_chart_data(selected_dates, selected_magazines)
-        fig = px.line(chart_df, x='Data_Stanu', y='Ilosc_Dostepna', color='Nazwa_Magazynu', title='Zmiana ilości dostępnych produktów w wybranym czasie')
-        fig.update_layout(xaxis_title='Data', yaxis_title='Dostępna ilość')
+        # Utworzenie wykresu liniowego przy użyciu biblioteki Plotly Express
+        fig = px.line(
+            chart_df, 
+            x='Data_Stanu', # Ustawienie osi X na kolumnę 'Data_Stanu'
+            y='Ilosc_Dostepna',  # Ustawienie osi Y na kolumnę 'Ilosc_Dostepna'
+            color='Nazwa_Magazynu', # Kolory linii będą różne dla różnych magazynów
+            title='Zmiana ilości dostępnych produktów w wybranym czasie') # Tytuł wykresu
+        # Aktualizacja układu wykresu - ustawienie tytułów osi
+        fig.update_layout(xaxis_title='Data', # Tytuł osi X
+                          yaxis_title='Dostępna ilość') # Tytuł osi Y
+        # Ustawienie, aby oś Y zaczynała się od zera 
         fig.update_layout(yaxis=dict(rangemode='tozero'))
         fig.update_layout(xaxis=dict(tickmode='linear', dtick='D1'))
+        # Wyświetlenie wykresu w aplikacji Streamlit
         st.plotly_chart(fig)
 
 if __name__ == "__main__":
