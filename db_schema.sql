@@ -8,14 +8,11 @@ CREATE TABLE Suppliers (
 CREATE TABLE Products (
     product_code INT IDENTITY(1,1) PRIMARY KEY,
     product_name VARCHAR(255) NOT NULL,
-    category VARCHAR(255),
     safety_stock INT,
-    units_per_package INT,
-    unit_volume DECIMAL(5, 2),
     unit_height INT,
     unit_width INT,
     unit_depth INT,
-    unit_weight INT
+    unit_volume DECIMAL(5, 2)
 );
 
 CREATE TABLE Warehouses (
@@ -68,7 +65,6 @@ CREATE TABLE Deliveries (
     expected_delivery_date DATE,
     delivery_date DATE,
     delivery_status VARCHAR(255),
-    -- other delivery attributes...
     FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id)
 );
 

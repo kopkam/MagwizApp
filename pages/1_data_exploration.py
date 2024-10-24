@@ -65,7 +65,7 @@ def update_data(conn):
         'suppliers.xlsx': 'Suppliers',
         'products.xlsx': 'Products',
         'warehouses.xlsx': 'Warehouses',
-        'inventory_levels.xlsx': 'InventoryLevels',
+        'warehouse_stock.xlsx': 'WarehouseStock',
         'customers.xlsx': 'Customers',
         'orders.xlsx': 'Orders',
         'order_details.xlsx': 'OrderDetails',

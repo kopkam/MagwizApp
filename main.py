@@ -25,7 +25,7 @@ def main():
     st.header('Features:')
     st.markdown("""
     - **Data Exploration (🔍):** Update and browse data related to warehouse activities to better understand trends and patterns.
-    - **Inventory Levels (📦):** Track the current inventory levels of products and monitor their changes over time.
+    - **Warehouse Stock (📦):** Track the current warehouse stock levels of products and monitor their changes over time.
     - **Stock Shortages (⚠️):** Receive information about stock shortages and take appropriate actions to resolve them.
     - **ABC Analysis (📊):** Analyze products based on their value and importance to better manage inventory.
     - **Order Timeliness (🚚):** Monitor the timeliness of deliveries and shipments, and identify delays to optimize logistics processes.
@@ -39,7 +39,7 @@ def main():
         [
             Page("main.py", "Home", "🏠"),
             Page("pages/1_data_exploration.py", "Data Exploration", "🔍"),
-            Page("pages/2_inventory_levels.py", "Inventory Levels", "📦"),
+            Page("pages/2_warehouse_stock.py", "Inventory Levels", "📦"),
             Page("pages/3_stock_shortages.py", "Stock Shortages", "⚠️"),
             Page("pages/4_abc_analysis.py", "ABC Analysis", "📊"),
             Page("pages/5_order_timeliness.py", "Order Timeliness", "🚚"),
