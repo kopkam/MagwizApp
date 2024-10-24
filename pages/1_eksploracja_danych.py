@@ -4,48 +4,48 @@ import sqlite3
 import os
 import datetime
 
-# Funkcja do pobierania nazw istniejących tabel z bazy danych
+# Function to fetch names of existing tables from the database
 def get_table_names(conn):
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = cursor.fetchall()
     return [table[0] for table in tables]
 
-# Funkcja do pobierania nazw istniejących tabel z bazy danych wraz z rozmiarem pliku Excel i datą ostatniej modyfikacji
+# Function to fetch names of existing tables from the database along with Excel file size and last modification date
 def get_table_names_with_excel_info(conn, folder_path):
-    # Utworzenie kursora do wykonywania poleceń SQL
+    # Create a cursor to execute SQL commands
     cursor = conn.cursor()
-    # Wykonanie zapytania SQL w celu pobrania nazw wszystkich tabel z bazy danych SQLite
+    # Execute SQL query to fetch names of all tables from the SQLite database
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    # Pobranie wyników zapytania (nazw tabel)
+    # Fetch query results (table names)
     tables = cursor.fetchall()
-    # Lista do przechowywania informacji o tabelach
+    # List to store information about tables
     table_names_with_info = []
-    # Iteracja po każdej nazwie tabeli
+    # Iterate over each table name
     for table in tables:
-        table_name = table[0]  # Pobranie nazwy tabeli
-        excel_file = f"{table_name}.xlsx"  # Utworzenie nazwy pliku Excel odpowiadającego tabeli
-        excel_path = os.path.join(folder_path, excel_file)  # Utworzenie ścieżki do pliku Excel
-        # Sprawdzenie, czy plik Excel istnieje
+        table_name = table[0]  # Get the table name
+        excel_file = f"{table_name}.xlsx"  # Create the corresponding Excel file name
+        excel_path = os.path.join(folder_path, excel_file)  # Create the path to the Excel file
+        # Check if the Excel file exists
         if os.path.exists(excel_path):
-            size_bytes = os.path.getsize(excel_path)  # Pobranie rozmiaru pliku w bajtach
-            size_mb = size_bytes / (1024 * 1024)  # Konwersja rozmiaru na megabajty
-            modification_time = os.path.getmtime(excel_path)  # Pobranie czasu modyfikacji pliku
+            size_bytes = os.path.getsize(excel_path)  # Get the file size in bytes
+            size_mb = size_bytes / (1024 * 1024)  # Convert the size to megabytes
+            modification_time = os.path.getmtime(excel_path)  # Get the file modification time
             modification_time_str = datetime.datetime.fromtimestamp(modification_time).strftime(
-                '%d-%m-%Y %H:%M:%S')  # Formatowanie daty modyfikacji
-            # Dodanie informacji o tabeli do listy
+                '%d-%m-%Y %H:%M:%S')  # Format the modification date
+            # Add table information to the list
             table_names_with_info.append((table_name, size_mb, modification_time_str))
-    # Zwrócenie listy z informacjami o tabelach
+    # Return the list with table information
     return table_names_with_info
 
-# Funkcja do pobierania rekordów z wybranej tabeli
+# Function to fetch records from the selected table
 def get_first_last_records(conn, table_name):
     query = f"SELECT * FROM {table_name}"
     df = pd.read_sql_query(query, conn)
 
     return df
 
-# Funkcja do usuwania duplikatów w pierwszej kolumnie tabeli
+# Function to remove duplicates from the first column of a table
 def remove_duplicates(conn, table_name):
     query = f"SELECT * FROM {table_name}"
     df = pd.read_sql_query(query, conn)
@@ -58,19 +58,19 @@ def remove_duplicates(conn, table_name):
     
     return num_duplicates_removed
 
-# Funkcja do aktualizacji danych z plików Excel
+# Function to update data from Excel files
 def update_data(conn):
-    folder_path = 'Dane'
+    folder_path = 'Data'
     excel_files = {
-        'dostawcy.xlsx': 'Dostawcy',
-        'produkty.xlsx': 'Produkty',
-        'magazyny.xlsx': 'Magazyny',
-        'stany_magazynowe.xlsx': 'StanyMagazynowe',
-        'klienci.xlsx': 'Klienci',
-        'zamowienia.xlsx': 'Zamowienia',
-        'zamowienia_szczegoly.xlsx': 'ZamowieniaSzczegoly',
-        'dostawy.xlsx': 'Dostawy',
-        'dostawy_szczegoly.xlsx': 'DostawySzczegoly'
+        'suppliers.xlsx': 'Suppliers',
+        'products.xlsx': 'Products',
+        'warehouses.xlsx': 'Warehouses',
+        'inventory_levels.xlsx': 'InventoryLevels',
+        'customers.xlsx': 'Customers',
+        'orders.xlsx': 'Orders',
+        'order_details.xlsx': 'OrderDetails',
+        'deliveries.xlsx': 'Deliveries',
+        'delivery_details.xlsx': 'DeliveryDetails'
     }
 
     for excel_file, table_name in excel_files.items():
@@ -79,18 +79,18 @@ def update_data(conn):
             existing_data = pd.read_sql_query(f"SELECT * FROM {table_name}", conn)
             new_data = pd.read_excel(excel_path)
             
-            # Usuwamy duplikaty w pierwszej kolumnie
+            # Remove duplicates in the first column
             num_duplicates_removed = remove_duplicates(conn, table_name)
             if num_duplicates_removed > 0:
-                st.write(f"Usunięto {num_duplicates_removed} duplikatów w tabeli '{table_name}'.")
+                st.write(f"Removed {num_duplicates_removed} duplicates from the '{table_name}' table.")
             
-            # Dodajemy nowe rekordy
+            # Add new records
             new_records = new_data[~new_data.iloc[:, 0].isin(existing_data.iloc[:, 0])]
             num_added_records = len(new_records)
             new_records.to_sql(table_name, conn, if_exists='append', index=False)
-            st.write(f"Do tabeli '{table_name}' dodano {num_added_records} nowych rekordów.")
+            st.write(f"Added {num_added_records} new records to the '{table_name}' table.")
             
-            # Usuwamy rekordy, które nie istnieją w pliku Excel, ale istnieją w bazie danych
+            # Remove records that do not exist in the Excel file but exist in the database
             records_to_delete = existing_data[~existing_data.iloc[:, 0].isin(new_data.iloc[:, 0])]
             num_deleted_records = len(records_to_delete)
             if num_deleted_records > 0:
@@ -98,67 +98,67 @@ def update_data(conn):
                     cursor = conn.cursor()
                     cursor.execute(f"DELETE FROM {table_name} WHERE {existing_data.columns[0]} = ?", (row[existing_data.columns[0]],))
                     conn.commit()
-                st.write(f"Z tabeli '{table_name}' usunięto {num_deleted_records} rekordów.")
+                st.write(f"Deleted {num_deleted_records} records from the '{table_name}' table.")
         else:
-            st.write(f"Plik '{excel_file}' nie istnieje. Pomijanie...")
+            st.write(f"The file '{excel_file}' does not exist. Skipping...")
 
 
-# Połączenie z bazą danych SQLite
-conn = sqlite3.connect('DB_ZAPASY.db')
+# Connection to the SQLite database
+conn = sqlite3.connect('DB_INVENTORY.db')
 
 
-# Strona Streamlit
+# Streamlit page
 def main():
-    st.title('Aktualizacja danych pobieranych z plików Excel')
+    st.title('Updating data retrieved from Excel files')
 
-    # Przycisk do aktualizacji plików
-    update_button = st.button("Aktualizuj dane")
+    # Button to update files
+    update_button = st.button("Update data")
     st.markdown('---')
 
     if update_button:
-        messages_to_clear = st.empty()  # Przechowujemy stan komunikatów
+        messages_to_clear = st.empty()  # Store message state
         update_data(conn)
-        st.write("Aktualizacja zakończona.")
-        # Wyświetl przycisk do wyczyszczenia komunikatów tylko jeśli wykonano aktualizację
-        st.button("Wyczyść komunikat")
+        st.write("Update completed.")
+        # Display a button to clear messages only if the update was performed
+        st.button("Clear messages")
 
-    st.title('Dostępne pliki Excel')
+    st.title('Available Excel files')
     
-    # Przyciski do wyświetlenia/ukrycia tabel
-    show_files = st.button('Pokaż informację')
+    # Buttons to show/hide tables
+    show_files = st.button('Show information')
     hide_files = False
 
     if show_files:
-        folder_path = 'Dane'
+        folder_path = 'Data'
         table_names_with_info = get_table_names_with_excel_info(conn, folder_path)
         if table_names_with_info:
             for table_name, size_mb, modification_time_str in table_names_with_info:
-                st.write(f"- {table_name}.xlsx (rozmiar: {size_mb:.2f} MB, ostatnia modyfikacja: {modification_time_str})")
+                st.write(f"- {table_name}.xlsx (size: {size_mb:.2f} MB, last modification: {modification_time_str})")
         else:
-            st.write("Brak plików.")
-        hide_files = st.button('Ukryj informację')
+            st.write("No files.")
+        hide_files = st.button('Hide information')
 
     if hide_files:
-        st.text("Pliki ukryte.")
+        st.text("Files hidden.")
 
     st.markdown('---')
-    st.title('Wyświetlanie zawartości plików')
+    st.title('Displaying file content')
 
     table_names = get_table_names(conn)
-    selected_table = st.selectbox('Wybierz dostęny plik', table_names)
-    st.write(f"Wybrany plik: {selected_table}")
+    selected_table = st.selectbox('Select available file', table_names)
+    st.write(f"Selected file: {selected_table}")
 
-    show_records = st.button('Pokaż zawartość')
+    show_records = st.button('Show content')
     hide_records = False
 
     if show_records:
         df = get_first_last_records(conn, selected_table)
-        st.write("Aktualne dane:")
+        st.write("Current data:")
         st.dataframe(df, hide_index=True)
-        hide_records = st.button('Ukryj zawartość')
+        hide_records = st.button('Hide content')
 
     if hide_records:
-        st.text("Zawartość ukryta.")
+        st.text("Content hidden.")
 
 if __name__ == "__main__":
     main()

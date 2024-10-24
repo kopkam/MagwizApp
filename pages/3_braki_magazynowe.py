@@ -5,108 +5,107 @@ import io
 import plotly.graph_objects as go
 import plotly.express as px
 
-# Funkcja do nawiązywania połączenia z bazą danych
+# Function to establish a connection to the database
 def connect_db():
-    conn = sqlite3.connect('db_zapasy.db')
+    conn = sqlite3.connect('db_inventory.db')
     return conn
 
-# Funkcja do ładowania danych
+# Function to load data from the database
 def load_data(conn):
     query = """
-        SELECT DATE(sm.data_stanu) AS 'Dzień Stanu',
-               p.nazwa_produktu AS 'Nazwa Produktu',
-               sm.ilosc_dostepna AS 'Ilość Dostępna',
-               p.zapas_bezpieczenstwa AS 'Zapas Bezpieczeństwa'
-        FROM StanyMagazynowe sm
-        JOIN Produkty p ON sm.kod_produktu = p.kod_produktu
-        WHERE sm.ilosc_dostepna < p.zapas_bezpieczenstwa
-        ORDER BY sm.data_stanu, p.nazwa_produktu
+        SELECT DATE(sm.data_state) AS 'State Date',
+               p.product_name AS 'Product Name',
+               sm.available_quantity AS 'Available Quantity',
+               p.safety_stock AS 'Safety Stock'
+        FROM InventoryStates sm
+        JOIN Products p ON sm.product_code = p.product_code
+        WHERE sm.available_quantity < p.safety_stock
+        ORDER BY sm.data_state, p.product_name
     """
     df = pd.read_sql_query(query, conn)
     return df
 
-# Funkcja do generowania wykresu
+# Function to generate the bar chart
 def generate_plot(df, selected_dates, search_term):
     fig = go.Figure()
     
-    # Definiowanie palety kolorów dla słupków
+    # Define a color palette for the bars
     colors = px.colors.qualitative.Plotly
     
-    # Sortowanie wybranych dat rosnąco
+    # Sort selected dates in ascending order
     selected_dates.sort()
 
     for i, date in enumerate(selected_dates):
-        filtered_df = df[df['Dzień Stanu'] == date]
+        filtered_df = df[df['State Date'] == date]
 
         if search_term:
-            filtered_df = filtered_df[filtered_df['Nazwa Produktu'].str.contains(search_term, case=False)]
+            filtered_df = filtered_df[filtered_df['Product Name'].str.contains(search_term, case=False)]
 
-        shortages = abs(filtered_df['Ilość Dostępna'] - filtered_df['Zapas Bezpieczeństwa']).sum()
+        shortages = abs(filtered_df['Available Quantity'] - filtered_df['Safety Stock']).sum()
 
         fig.add_trace(go.Bar(
             name=f'{date}',
-            x=['Ilość dostępna', 'Ilość minimalna'],
-            y=[filtered_df['Ilość Dostępna'].sum(), shortages],
-            marker_color=colors[i % len(colors)]  # Użyj reszty z dzielenia do cyklicznego wyboru kolorów, jeśli jest więcej dat niż kolorów
+            x=['Available Quantity', 'Minimum Quantity'],
+            y=[filtered_df['Available Quantity'].sum(), shortages],
+            marker_color=colors[i % len(colors)]  # Use modulo to cycle through colors if more dates than colors
         ))
 
-    fig.update_layout(title='Wykres dostępności produktów i minimalnej ilości produktów', barmode='group')
+    fig.update_layout(title='Product Availability and Minimum Stock Levels', barmode='group')
     return fig
 
-# Funkcja do pobierania danych i generowania wykresu
+# Function to display the data and chart
 def main():
-    st.title('Wyświetlanie produktów wymagających zamówienia')
+    st.title('Display Products Requiring Restock')
 
     conn = connect_db()
     df = load_data(conn)
     conn.close()
 
-    latest_date = df['Dzień Stanu'].max()
+    latest_date = df['State Date'].max()
 
-    selected_dates = st.multiselect('Wybierz daty do filtrowania:', df['Dzień Stanu'].unique(), default=[latest_date])
+    selected_dates = st.multiselect('Select dates to filter:', df['State Date'].unique(), default=[latest_date])
     
-
-    # Jeśli nie wybrano żadnej daty, użyj najnowszej dostępnej daty
+    # If no date is selected, use the most recent available date
     if not selected_dates:
         selected_dates = [latest_date]
 
-    search_term = st.text_input("Wprowadź nazwę produktu do filtrowania:")
+    search_term = st.text_input("Enter product name to filter:")
 
-    # Dodajemy kolumnę "Różnica Zapasu"
-    df['Brakująca ilość'] = df['Zapas Bezpieczeństwa'] - df['Ilość Dostępna']
+    # Add a "Stock Difference" column
+    df['Missing Quantity'] = df['Safety Stock'] - df['Available Quantity']
 
-    # Wyświetlanie tabeli danych
-    filtered_df = df[df['Dzień Stanu'].isin(selected_dates)]
+    # Display the filtered data table
+    filtered_df = df[df['State Date'].isin(selected_dates)]
     if search_term:
-        filtered_df = filtered_df[filtered_df['Nazwa Produktu'].str.contains(search_term, case=False)]
-    st.dataframe(filtered_df.drop(columns=['Dzień Stanu']), hide_index=True)
+        filtered_df = filtered_df[filtered_df['Product Name'].str.contains(search_term, case=False)]
+    st.dataframe(filtered_df.drop(columns=['State Date']), hide_index=True)
 
-    # Dodanie przycisku do pobierania danych jako pliku Excel
+    # Add button to download the data as an Excel file
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         filtered_df.to_excel(writer, index=False, sheet_name='Sheet1')
     output.seek(0)
     st.download_button(
-        label="Pobierz jako plik Excel",
+        label="Download as Excel file",
         data=output.getvalue(),
-        file_name="braki_magazynowe.xlsx",
+        file_name="inventory_shortages.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     st.markdown('---')
 
-    # Liczba braków magazynowych dla każdej wybranej daty
+    # Display warehouse shortages for each selected date
     for date in selected_dates:
-        # Filtracja danych dla konkretnej daty
-        filtered_date_df = filtered_df[filtered_df['Dzień Stanu'] == date]
+        # Filter data for the specific date
+        filtered_date_df = filtered_df[filtered_df['State Date'] == date]
 
-        #Obliczenie liczby magazynów dla wybranej daty
-        shortages_date = abs(filtered_date_df['Ilość Dostępna'] - filtered_date_df['Zapas Bezpieczeństwa']).sum()
+        # Calculate shortages for the selected date
+        shortages_date = abs(filtered_date_df['Available Quantity'] - filtered_date_df['Safety Stock']).sum()
 
-        #Wyświetlenie liczby braków magazynowych jako miary w aplikacji Streamlit
-        st.metric(label=f"Braki magazynowe dla daty {date}", value=int(shortages_date))
+        # Display the shortage count as a metric in the Streamlit app
+        st.metric(label=f"Warehouse shortages for {date}", value=int(shortages_date))
 
     st.markdown('---')
-    # Generowanie wykresu
+    # Generate the bar chart
     fig = generate_plot(df, selected_dates, search_term)
     st.plotly_chart(fig, use_container_width=True)
 

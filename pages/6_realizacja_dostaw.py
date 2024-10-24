@@ -5,188 +5,188 @@ import plotly.graph_objects as go
 import io
 from datetime import datetime
 
-# Funkcja do wczytywania danych
+# Function to load data
 def load_data(option):
-    # Połączenie z bazą danych SQLite3
-    conn = sqlite3.connect('db_zapasy.db')
+    # Connection to SQLite3 database
+    conn = sqlite3.connect('db_inventory.db')
 
-    if option == "Czas realizacji dostaw":
-        # Zapytanie SQL dla danych dostawcy
+    if option == "Delivery Lead Time":
+        # SQL query for supplier data
         query = """
         SELECT 
-            DS.id_dostawy AS 'Numer dostawy',
-            D.nazwa_dostawcy AS 'Nazwa dostawcy', 
-            DATE(DS.data_zamowienia) AS 'Data zamówienia', 
-            DATE(DS.data_dostawy) AS 'Data dostawy', 
-            (julianday(DS.data_dostawy) - julianday(DS.data_zamowienia)) AS 'Liczba dni realizacji'
-        FROM Dostawy DS
-        JOIN Dostawcy D ON DS.id_dostawca = D.id_dostawca;
+            DS.id_delivery AS 'Delivery Number',
+            S.supplier_name AS 'Supplier Name', 
+            DATE(DS.order_date) AS 'Order Date', 
+            DATE(DS.delivery_date) AS 'Delivery Date', 
+            (julianday(DS.delivery_date) - julianday(DS.order_date)) AS 'Lead Time (days)'
+        FROM Deliveries DS
+        JOIN Suppliers S ON DS.id_supplier = S.id_supplier;
         """
-    elif option == "Czas realizacji wysyłek":
-        # Zapytanie SQL dla danych klienta
+    elif option == "Shipping Lead Time":
+        # SQL query for customer data
         query = """
         SELECT 
-            Z.id_zamowienia AS 'Numer zamówienia',
-            K.nazwa_klienta AS 'Nazwa klienta', 
-            DATE(Z.data_zamowienia) AS 'Data zamówienia', 
-            DATE(Z.data_wysylki) AS 'Data Wysyłki', 
-            (julianday(Z.data_wysylki) - julianday(Z.data_zamowienia)) AS 'Liczba dni realizacji'
-        FROM Zamowienia Z
-        JOIN Klienci K ON Z.id_klient = K.id_klient;
+            O.id_order AS 'Order Number',
+            C.customer_name AS 'Customer Name', 
+            DATE(O.order_date) AS 'Order Date', 
+            DATE(O.shipping_date) AS 'Shipping Date', 
+            (julianday(O.shipping_date) - julianday(O.order_date)) AS 'Lead Time (days)'
+        FROM Orders O
+        JOIN Customers C ON O.id_customer = C.id_customer;
         """
 
-    # Wykonanie zapytania i wczytanie wyników do DataFrame
+    # Execute the query and load results into a DataFrame
     df = pd.read_sql_query(query, conn)
 
-    # Zamknięcie połączenia z bazą danych
+    # Close the connection to the database
     conn.close()
 
     return df
 
-# Wczytanie danych na podstawie wyboru użytkownika
-option = st.sidebar.radio("Wybierz dane do wyświetlenia", ("Czas realizacji dostaw", "Czas realizacji wysyłek"))
+# Load data based on user's selection
+option = st.sidebar.radio("Select data to display", ("Delivery Lead Time", "Shipping Lead Time"))
 df = load_data(option)
 
-# Wyświetlenie tytułu
-st.title('Wskaźnik czasu realizacji zamówień')
+# Display title
+st.title('Order Lead Time Indicator')
 
-# Wyświetlenie danych dla dostawców
-if option == "Czas realizacji dostaw":
-    st.subheader("Czas trwania realizacji dostaw")
+# Display data for suppliers
+if option == "Delivery Lead Time":
+    st.subheader("Delivery Lead Time")
         
-    # Konwersja daty na datetime
-    df['Data zamówienia'] = pd.to_datetime(df['Data zamówienia']).dt.date
+    # Convert date to datetime
+    df['Order Date'] = pd.to_datetime(df['Order Date']).dt.date
 
-    # Interaktywny suwak daty
-    min_date = min(df['Data zamówienia'])
-    max_date = max(df['Data zamówienia'])
-    start_date = st.date_input("Wybierz początkową datę", min_value=min_date, max_value=max_date, value=min_date)
-    end_date = st.date_input("Wybierz końcową datę", min_value=min_date, max_value=max_date, value=max_date)
+    # Interactive date range slider
+    min_date = min(df['Order Date'])
+    max_date = max(df['Order Date'])
+    start_date = st.date_input("Select start date", min_value=min_date, max_value=max_date, value=min_date)
+    end_date = st.date_input("Select end date", min_value=min_date, max_value=max_date, value=max_date)
 
-    # Konwersja daty na obiekt datetime
+    # Convert date to datetime object
     start_date = datetime.combine(start_date, datetime.min.time())
     end_date = datetime.combine(end_date, datetime.max.time())
 
-    # Sprawdzenie poprawności daty
+    # Validate date range
     if start_date > end_date:
-        st.error("Błąd: Data początkowa nie może być większa niż data końcowa!")
+        st.error("Error: Start date cannot be later than end date!")
     elif start_date == end_date:
-        st.error("Błąd: Data początkowa i końcowa nie mogą być identyczne!")
+        st.error("Error: Start and end dates cannot be the same!")
     else:
-        # Filtrowanie danych na podstawie wybranego zakresu dat
-        filtered_df = df[(df['Data zamówienia'] >= start_date.date()) & (df['Data zamówienia'] <= end_date.date())]
+        # Filter data based on the selected date range
+        filtered_df = df[(df['Order Date'] >= start_date.date()) & (df['Order Date'] <= end_date.date())]
         
-        # Wyświetlenie filtrowanych danych
+        # Display filtered data
         st.dataframe(filtered_df, hide_index=True)
 
-        # Obliczenie czasu trwania cyklu
-        filtered_df['Czas trwania cyklu'] = (pd.to_datetime(filtered_df['Data dostawy']) - pd.to_datetime(filtered_df['Data zamówienia'])).dt.days
+        # Calculate cycle lead time
+        filtered_df['Cycle Lead Time'] = (pd.to_datetime(filtered_df['Delivery Date']) - pd.to_datetime(filtered_df['Order Date'])).dt.days
 
-        # Dodanie przycisku pobierania Excela
+        # Add Excel download button
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             filtered_df.to_excel(writer, index=False, sheet_name='Sheet1')
         output.seek(0)
         st.download_button(
-            label="Pobierz jako plik Excel",
+            label="Download as Excel file",
             data=output.getvalue(),
-            file_name="czas_trwania_dostawy.xlsx",
+            file_name="delivery_lead_time.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
         st.markdown('---')
 
-        # Średni czas realizacji cyklu
-        average_cycle_time = filtered_df['Czas trwania cyklu'].mean()
-        # Średni czas realizacji cyklu w godzinach
+        # Calculate average lead time
+        average_cycle_time = filtered_df['Cycle Lead Time'].mean()
+        # Average lead time in hours
         average_cycle_time_hours = average_cycle_time * 24
-        st.subheader(f"Średni czas realizacji dostaw od {start_date.date()} do {end_date.date()}")
+        st.subheader(f"Average delivery lead time from {start_date.date()} to {end_date.date()}")
 
         col1, col2 = st.columns(2)
         with col1:
-            st.metric('', f"{average_cycle_time:.2f} (dni)", label_visibility='visible')
+            st.metric('', f"{average_cycle_time:.2f} (days)", label_visibility='visible')
         with col2:
-            st.metric('', f"{average_cycle_time_hours:.2f} (godziny)", label_visibility='visible')
-
+            st.metric('', f"{average_cycle_time_hours:.2f} (hours)", label_visibility='visible')
         st.markdown('---')
     
-    # Obliczenie średniego czasu dostawy dla każdego dostawcy
-    average_delivery_time = filtered_df.groupby('Nazwa dostawcy')['Czas trwania cyklu'].mean().reset_index()
-    # Znalezienie dostawcy z najdłuższym średnim czasem dostawy
-    slowest_customer = average_delivery_time.loc[average_delivery_time['Czas trwania cyklu'].idxmax()]
-    # Przygotowanie informacji o najwolniejszym dostawcy w formacie HTML
-    slowest_customer_info = f"<div style='display:flex; justify-content: space-between;'><div style='text-align: center; padding-right: 10px;'><h3 style='word-wrap: break-word;'>Najwolniejszy dostawca</h3><p>{slowest_customer['Nazwa dostawcy']}</p></div><div style='text-align: center;'><h3>Średni czas realizacji dostaw (dni) </h3><p>{slowest_customer['Czas trwania cyklu']:.2f}</p></div></div>"
-    fastest_customer = average_delivery_time.loc[average_delivery_time['Czas trwania cyklu'].idxmin()]
-    fastest_customer_info = f"<div style='display:flex; justify-content: space-between;'><div style='text-align: center; padding-right: 10px;'><h3 style='word-wrap: break-word;'>Najszybszy dostawca</h3><p>{fastest_customer['Nazwa dostawcy']}</p></div><div style='text-align: center;'><h3>Średni czas realizacji dostaw (dni) </h3><p>{fastest_customer['Czas trwania cyklu']:.2f}</p></div></div>"
-    st.markdown(fastest_customer_info, unsafe_allow_html=True)
-    # Wyświetlenie informacji o najwolniejszym dostawcy na stronie za pomocą Streamlit
-    st.markdown(slowest_customer_info, unsafe_allow_html=True)
+    # Calculate average delivery time for each supplier
+    average_delivery_time = filtered_df.groupby('Supplier Name')['Cycle Lead Time'].mean().reset_index()
+    # Find the supplier with the longest average lead time
+    slowest_supplier = average_delivery_time.loc[average_delivery_time['Cycle Lead Time'].idxmax()]
+    # Prepare info about the slowest supplier in HTML format
+    slowest_supplier_info = f"<div style='display:flex; justify-content: space-between;'><div style='text-align: center; padding-right: 10px;'><h3 style='word-wrap: break-word;'>Slowest Supplier</h3><p>{slowest_supplier['Supplier Name']}</p></div><div style='text-align: center;'><h3>Average Lead Time (days)</h3><p>{slowest_supplier['Cycle Lead Time']:.2f}</p></div></div>"
+    # Find the supplier with the shortest average lead time
+    fastest_supplier = average_delivery_time.loc[average_delivery_time['Cycle Lead Time'].idxmin()]
+    fastest_supplier_info = f"<div style='display:flex; justify-content: space-between;'><div style='text-align: center; padding-right: 10px;'><h3 style='word-wrap: break-word;'>Fastest Supplier</h3><p>{fastest_supplier['Supplier Name']}</p></div><div style='text-align: center;'><h3>Average Lead Time (days)</h3><p>{fastest_supplier['Cycle Lead Time']:.2f}</p></div></div>"
+    st.markdown(fastest_supplier_info, unsafe_allow_html=True)
+    # Display info about the slowest supplier
+    st.markdown(slowest_supplier_info, unsafe_allow_html=True)
 
-# Wyświetlenie danych dla klientów
-elif option == "Czas realizacji wysyłek":
-    st.subheader("Czas trwania realizacji wysyłek")
+# Display data for customers
+elif option == "Shipping Lead Time":
+    st.subheader("Shipping Lead Time")
 
-    # Konwersja daty na datetime
-    df['Data zamówienia'] = pd.to_datetime(df['Data zamówienia']).dt.date
+    # Convert date to datetime
+    df['Order Date'] = pd.to_datetime(df['Order Date']).dt.date
 
-    # Interaktywny suwak daty
-    min_date = min(df['Data zamówienia'])
-    max_date = max(df['Data zamówienia'])
-    start_date = st.date_input("Wybierz początkową datę", min_value=min_date, max_value=max_date, value=min_date)
-    end_date = st.date_input("Wybierz końcową datę", min_value=min_date, max_value=max_date, value=max_date)
+    # Interactive date range slider
+    min_date = min(df['Order Date'])
+    max_date = max(df['Order Date'])
+    start_date = st.date_input("Select start date", min_value=min_date, max_value=max_date, value=min_date)
+    end_date = st.date_input("Select end date", min_value=min_date, max_value=max_date, value=max_date)
 
-    # Konwersja daty na obiekt datetime
+    # Convert date to datetime object
     start_date = datetime.combine(start_date, datetime.min.time())
     end_date = datetime.combine(end_date, datetime.max.time())
 
-    # Sprawdzenie poprawności daty
+    # Validate date range
     if start_date > end_date:
-        st.error("Błąd: Data początkowa nie może być większa niż data końcowa!")
+        st.error("Error: Start date cannot be later than end date!")
     elif start_date == end_date:
-        st.error("Błąd: Data początkowa i końcowa nie mogą być identyczne!")
+        st.error("Error: Start and end dates cannot be the same!")
     else:
-        # Filtrowanie danych na podstawie wybranego zakresu dat
-        filtered_df = df[(df['Data zamówienia'] >= start_date.date()) & (df['Data zamówienia'] <= end_date.date())]
+        # Filter data based on the selected date range
+        filtered_df = df[(df['Order Date'] >= start_date.date()) & (df['Order Date'] <= end_date.date())]
         
-        # Wyświetlenie filtrowanych danych
+        # Display filtered data
         st.dataframe(filtered_df, hide_index=True)
 
-        # Obliczenie czasu trwania cyklu
-        filtered_df['Czas trwania cyklu'] = (pd.to_datetime(filtered_df['Data Wysyłki']) - pd.to_datetime(filtered_df['Data zamówienia'])).dt.days
+        # Calculate cycle lead time
+        filtered_df['Cycle Lead Time'] = (pd.to_datetime(filtered_df['Shipping Date']) - pd.to_datetime(filtered_df['Order Date'])).dt.days
 
-        # Dodanie przycisku pobierania Excela
+        # Add Excel download button
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             filtered_df.to_excel(writer, index=False, sheet_name='Sheet1')
         output.seek(0)
         st.download_button(
-            label="Pobierz jako plik Excel",
+            label="Download as Excel file",
             data=output.getvalue(),
-            file_name="czas_trwania_wysylki.xlsx",
+            file_name="shipping_lead_time.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
         st.markdown('---')
 
-        # Średni czas realizacji cyklu
-        average_cycle_time = filtered_df['Czas trwania cyklu'].mean()
-        # Średni czas realizacji cyklu w godzinach
+        # Calculate average lead time
+        average_cycle_time = filtered_df['Cycle Lead Time'].mean()
+        # Average lead time in hours
         average_cycle_time_hours = average_cycle_time * 24
-        st.subheader(f"Średni czas realizacji wysyłek od {start_date.date()} do {end_date.date()}")
+        st.subheader(f"Average shipping lead time from {start_date.date()} to {end_date.date()}")
         col1, col2 = st.columns(2)
 
         with col1:
-            st.metric('', f"{average_cycle_time:.2f} (dni)", label_visibility='visible')
+            st.metric('', f"{average_cycle_time:.2f} (days)", label_visibility='visible')
         with col2:
-            st.metric('', f"{average_cycle_time_hours:.2f} (godziny)", label_visibility='visible')
+            st.metric('', f"{average_cycle_time_hours:.2f} (hours)", label_visibility='visible')
 
     st.markdown('---')
 
-    # Średni czas wysyłki dla każdego klienta
-    average_delivery_time = filtered_df.groupby('Nazwa klienta')['Czas trwania cyklu'].mean().reset_index()
-    slowest_customer = average_delivery_time.loc[average_delivery_time['Czas trwania cyklu'].idxmax()]
-    slowest_customer_info = f"<div style='display:flex; justify-content: space-between;'><div style='text-align: center; padding-right: 10px;'><h3 style='word-wrap: break-word;'>Najwolniej obsługiwany klient</h3><p>{slowest_customer['Nazwa klienta']}</p></div><div style='text-align: center;'><h3>Średni czas realizacji wysyłek (dni)</h3><p>{slowest_customer['Czas trwania cyklu']:.2f}</p></div></div>"
-    fastest_customer = average_delivery_time.loc[average_delivery_time['Czas trwania cyklu'].idxmin()]
-    fastest_customer_info = f"<div style='display:flex; justify-content: space-between;'><div style='text-align: center; padding-right: 10px;'><h3 style='word-wrap: break-word;'>Najszybciej obsługiwany klient</h3><p>{fastest_customer['Nazwa klienta']}</p></div><div style='text-align: center;'><h3>Średni czas realizacji wysyłek (dni) </h3><p>{fastest_customer['Czas trwania cyklu']:.2f}</p></div></div>"
+    # Calculate average shipping time for each customer
+    average_delivery_time = filtered_df.groupby('Customer Name')['Cycle Lead Time'].mean().reset_index()
+    slowest_customer = average_delivery_time.loc[average_delivery_time['Cycle Lead Time'].idxmax()]
+    slowest_customer_info = f"<div style='display:flex; justify-content: space-between;'><div style='text-align: center; padding-right: 10px;'><h3 style='word-wrap: break-word;'>Slowest Customer</h3><p>{slowest_customer['Customer Name']}</p></div><div style='text-align: center;'><h3>Average Shipping Lead Time (days)</h3><p>{slowest_customer['Cycle Lead Time']:.2f}</p></div></div>"
+    fastest_customer = average_delivery_time.loc[average_delivery_time['Cycle Lead Time'].idxmin()]
+    fastest_customer_info = f"<div style='display:flex; justify-content: space-between;'><div style='text-align: center; padding-right: 10px;'><h3 style='word-wrap: break-word;'>Fastest Customer</h3><p>{fastest_customer['Customer Name']}</p></div><div style='text-align: center;'><h3>Average Shipping Lead Time (days)</h3><p>{fastest_customer['Cycle Lead Time']:.2f}</p></div></div>"
     st.markdown(fastest_customer_info, unsafe_allow_html=True)
     st.markdown(slowest_customer_info, unsafe_allow_html=True)

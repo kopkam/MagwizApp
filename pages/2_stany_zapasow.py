@@ -5,29 +5,29 @@ import io
 import plotly.express as px
 
 def connect_db():
-    return sqlite3.connect('db_zapasy.db')
+    return sqlite3.connect('db_inventory.db')
 
 def get_data(selected_dates, selected_magazines, product_name):
     conn = connect_db()
     dates_filter = "'" + "', '".join(selected_dates) + "'"
     magazines_filter = "'" + "', '".join(selected_magazines) + "'" if selected_magazines else "ALL"
-    where_clause = f"DATE(s.data_stanu) IN ({dates_filter})"
+    where_clause = f"DATE(s.data_state) IN ({dates_filter})"
     if selected_magazines:
-        where_clause += f" AND m.nazwa_magazynu IN ({magazines_filter})"
+        where_clause += f" AND m.warehouse_name IN ({magazines_filter})"
     if product_name:
-        where_clause += f" AND p.nazwa_produktu LIKE '%{product_name}%'"
+        where_clause += f" AND p.product_name LIKE '%{product_name}%'"
     query = f"""
     SELECT 
-        DATE(s.data_stanu) AS Data_Stanu,
-        p.nazwa_produktu AS Nazwa_Produktu,
-        m.nazwa_magazynu AS Nazwa_Magazynu,
-        s.ilosc_dostepna AS Ilosc_Dostepna
+        DATE(s.data_state) AS Data_State,
+        p.product_name AS Product_Name,
+        m.warehouse_name AS Warehouse_Name,
+        s.available_quantity AS Available_Quantity
     FROM 
-        StanyMagazynowe s
+        InventoryStates s
     JOIN 
-        Produkty p ON s.kod_produktu = p.kod_produktu
+        Products p ON s.product_code = p.product_code
     JOIN 
-        Magazyny m ON s.id_magazyn = m.id_magazyn
+        Warehouses m ON s.id_warehouse = m.id_warehouse
     WHERE 
         {where_clause};
     """
@@ -39,22 +39,22 @@ def get_chart_data(selected_dates, selected_magazines):
     conn = connect_db()
     dates_filter = "'" + "', '".join(selected_dates) + "'"
     magazines_filter = "'" + "', '".join(selected_magazines) + "'" if selected_magazines else "ALL"
-    where_clause = f"DATE(s.data_stanu) IN ({dates_filter})"
+    where_clause = f"DATE(s.data_state) IN ({dates_filter})"
     if selected_magazines:
-        where_clause += f" AND m.nazwa_magazynu IN ({magazines_filter})"
+        where_clause += f" AND m.warehouse_name IN ({magazines_filter})"
     query = f"""
     SELECT 
-        DATE(s.data_stanu) AS Data_Stanu,
-        m.nazwa_magazynu AS Nazwa_Magazynu,
-        SUM(s.ilosc_dostepna) AS Ilosc_Dostepna
+        DATE(s.data_state) AS Data_State,
+        m.warehouse_name AS Warehouse_Name,
+        SUM(s.available_quantity) AS Available_Quantity
     FROM 
-        StanyMagazynowe s
+        InventoryStates s
     JOIN 
-        Magazyny m ON s.id_magazyn = m.id_magazyn
+        Warehouses m ON s.id_warehouse = m.id_warehouse
     WHERE 
         {where_clause}
     GROUP BY 
-        DATE(s.data_stanu), m.nazwa_magazynu;
+        DATE(s.data_state), m.warehouse_name;
     """
     df = pd.read_sql_query(query, conn)
     conn.close()
@@ -62,21 +62,21 @@ def get_chart_data(selected_dates, selected_magazines):
 
 def main():
     conn = connect_db()
-    dates_query = "SELECT DISTINCT DATE(data_stanu) AS data_stanu FROM StanyMagazynowe ORDER BY data_stanu ASC;"
-    dates = pd.read_sql_query(dates_query, conn)['data_stanu'].tolist()
-    magazines_query = "SELECT DISTINCT nazwa_magazynu FROM Magazyny;"
-    magazines = pd.read_sql_query(magazines_query, conn)['nazwa_magazynu'].tolist()
+    dates_query = "SELECT DISTINCT DATE(data_state) AS data_state FROM InventoryStates ORDER BY data_state ASC;"
+    dates = pd.read_sql_query(dates_query, conn)['data_state'].tolist()
+    magazines_query = "SELECT DISTINCT warehouse_name FROM Warehouses;"
+    magazines = pd.read_sql_query(magazines_query, conn)['warehouse_name'].tolist()
     conn.close()
     latest_date = max(dates) if dates else None
 
-    st.write("# Stan zapasów na wybrany dzień")
-    selected_dates = st.multiselect("Wybierz daty:", dates, default=[latest_date] if latest_date else [])
-    selected_magazines = st.multiselect("Wybierz magazyny:", magazines)
-    product_name = st.text_input("Wprowadź nazwę produktu do filtrowania:")
+    st.write("# Inventory Status on Selected Date")
+    selected_dates = st.multiselect("Select dates:", dates, default=[latest_date] if latest_date else [])
+    selected_magazines = st.multiselect("Select warehouses:", magazines)
+    product_name = st.text_input("Enter product name to filter:")
     if not selected_dates and latest_date:
         selected_dates = [latest_date]
     df = get_data(selected_dates, selected_magazines, product_name)
-    df = df.rename(columns={"Data_Stanu": "Data stanu", "Nazwa_Produktu": "Nazwa produktu", "Nazwa_Magazynu": "Nazwa magazynu", "Ilosc_Dostepna": "Dostępna ilość"})
+    df = df.rename(columns={"Data_State": "Date of State", "Product_Name": "Product Name", "Warehouse_Name": "Warehouse Name", "Available_Quantity": "Available Quantity"})
     st.dataframe(df, hide_index=True)
 
     output = io.BytesIO()
@@ -84,36 +84,36 @@ def main():
          df.to_excel(writer, index=False, sheet_name='Sheet1')
     output.seek(0)
     st.download_button(
-          label="Pobierz jako plik Excel",
+          label="Download as Excel file",
           data=output.getvalue(),
-          file_name="stany_zapasow.xlsx",
+          file_name="inventory_status.xlsx",
          mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       )
     st.markdown('---')
 
     if selected_dates:
         for date in selected_dates:
-            total_quantity_date = df[df['Data stanu'] == date]['Dostępna ilość'].sum()
-            st.metric(label=f"Łączna ilość dostęnych produktów dla daty {date}", value=int(total_quantity_date))
+            total_quantity_date = df[df['Date of State'] == date]['Available Quantity'].sum()
+            st.metric(label=f"Total available product quantity for {date}", value=int(total_quantity_date))
         st.markdown('---')
 
     if not df.empty:
-        # Pobranie danych do wykresu na podstawie wybranych dat i magazynów
+        # Retrieve data for the chart based on selected dates and warehouses
         chart_df = get_chart_data(selected_dates, selected_magazines)
-        # Utworzenie wykresu liniowego przy użyciu biblioteki Plotly Express
+        # Create a line chart using Plotly Express
         fig = px.line(
             chart_df, 
-            x='Data_Stanu', # Ustawienie osi X na kolumnę 'Data_Stanu'
-            y='Ilosc_Dostepna',  # Ustawienie osi Y na kolumnę 'Ilosc_Dostepna'
-            color='Nazwa_Magazynu', # Kolory linii będą różne dla różnych magazynów
-            title='Zmiana ilości dostępnych produktów w wybranym czasie') # Tytuł wykresu
-        # Aktualizacja układu wykresu - ustawienie tytułów osi
-        fig.update_layout(xaxis_title='Data', # Tytuł osi X
-                          yaxis_title='Dostępna ilość') # Tytuł osi Y
-        # Ustawienie, aby oś Y zaczynała się od zera 
+            x='Data_State', # Set X axis to 'Data_State' column
+            y='Available_Quantity',  # Set Y axis to 'Available_Quantity' column
+            color='Warehouse_Name', # Different line colors for each warehouse
+            title='Changes in Available Product Quantity Over Time') # Chart title
+        # Update chart layout - set axis titles
+        fig.update_layout(xaxis_title='Date', # X axis title
+                          yaxis_title='Available Quantity') # Y axis title
+        # Ensure Y axis starts from zero 
         fig.update_layout(yaxis=dict(rangemode='tozero'))
         fig.update_layout(xaxis=dict(tickmode='linear', dtick='D1'))
-        # Wyświetlenie wykresu w aplikacji Streamlit
+        # Display the chart in the Streamlit app
         st.plotly_chart(fig)
 
 if __name__ == "__main__":
