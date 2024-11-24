@@ -39,7 +39,7 @@ def main():
         [
             Page("main.py", "Home", "🏠"),
             Page("pages/1_data_exploration.py", "Data Exploration", "🔍"),
-            Page("pages/2_warehouse_stock.py", "Inventory Levels", "📦"),
+            Page("pages/2_warehouse_stock.py", "Warehouse Stock", "📦"),
             Page("pages/3_stock_shortages.py", "Stock Shortages", "⚠️"),
             Page("pages/4_abc_analysis.py", "ABC Analysis", "📊"),
             Page("pages/5_order_timeliness.py", "Order Timeliness", "🚚"),

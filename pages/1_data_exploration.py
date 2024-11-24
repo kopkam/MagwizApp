@@ -104,7 +104,7 @@ def update_data(conn):
 
 
 # Connection to the SQLite database
-conn = sqlite3.connect('DB_INVENTORY.db')
+conn = sqlite3.connect('db_inventory.db')
 
 
 # Streamlit page

@@ -11,23 +11,23 @@ def get_data(selected_dates, selected_magazines, product_name):
     conn = connect_db()
     dates_filter = "'" + "', '".join(selected_dates) + "'"
     magazines_filter = "'" + "', '".join(selected_magazines) + "'" if selected_magazines else "ALL"
-    where_clause = f"DATE(s.data_state) IN ({dates_filter})"
+    where_clause = f"DATE(s.stock_date) IN ({dates_filter})"
     if selected_magazines:
         where_clause += f" AND m.warehouse_name IN ({magazines_filter})"
     if product_name:
         where_clause += f" AND p.product_name LIKE '%{product_name}%'"
     query = f"""
     SELECT 
-        DATE(s.data_state) AS Data_State,
+        DATE(s.stock_date) AS Stock_Date,
         p.product_name AS Product_Name,
         m.warehouse_name AS Warehouse_Name,
-        s.available_quantity AS Available_Quantity
+        s.quantity_available AS Quantity_Available
     FROM 
-        InventoryStates s
+        WarehouseStock s
     JOIN 
         Products p ON s.product_code = p.product_code
     JOIN 
-        Warehouses m ON s.id_warehouse = m.id_warehouse
+        Warehouses m ON s.warehouse_id = m.warehouse_id
     WHERE 
         {where_clause};
     """
@@ -39,22 +39,22 @@ def get_chart_data(selected_dates, selected_magazines):
     conn = connect_db()
     dates_filter = "'" + "', '".join(selected_dates) + "'"
     magazines_filter = "'" + "', '".join(selected_magazines) + "'" if selected_magazines else "ALL"
-    where_clause = f"DATE(s.data_state) IN ({dates_filter})"
+    where_clause = f"DATE(s.stock_date) IN ({dates_filter})"
     if selected_magazines:
         where_clause += f" AND m.warehouse_name IN ({magazines_filter})"
     query = f"""
     SELECT 
-        DATE(s.data_state) AS Data_State,
+        DATE(s.stock_date) AS Stock_Date,
         m.warehouse_name AS Warehouse_Name,
-        SUM(s.available_quantity) AS Available_Quantity
+        SUM(s.quantity_available) AS Quantity_Available
     FROM 
-        InventoryStates s
+        WarehouseStock s
     JOIN 
-        Warehouses m ON s.id_warehouse = m.id_warehouse
+        Warehouses m ON s.warehouse_id = m.warehouse_id
     WHERE 
         {where_clause}
     GROUP BY 
-        DATE(s.data_state), m.warehouse_name;
+        DATE(s.stock_date), m.warehouse_name;
     """
     df = pd.read_sql_query(query, conn)
     conn.close()
@@ -62,8 +62,8 @@ def get_chart_data(selected_dates, selected_magazines):
 
 def main():
     conn = connect_db()
-    dates_query = "SELECT DISTINCT DATE(data_state) AS data_state FROM InventoryStates ORDER BY data_state ASC;"
-    dates = pd.read_sql_query(dates_query, conn)['data_state'].tolist()
+    dates_query = "SELECT DISTINCT DATE(stock_date) AS stock_date FROM WarehouseStock ORDER BY stock_date ASC;"
+    dates = pd.read_sql_query(dates_query, conn)['stock_date'].tolist()
     magazines_query = "SELECT DISTINCT warehouse_name FROM Warehouses;"
     magazines = pd.read_sql_query(magazines_query, conn)['warehouse_name'].tolist()
     conn.close()
@@ -76,7 +76,7 @@ def main():
     if not selected_dates and latest_date:
         selected_dates = [latest_date]
     df = get_data(selected_dates, selected_magazines, product_name)
-    df = df.rename(columns={"Data_State": "Date of State", "Product_Name": "Product Name", "Warehouse_Name": "Warehouse Name", "Available_Quantity": "Available Quantity"})
+    df = df.rename(columns={"Stock_Date": "Stock Date", "Product_Name": "Product Name", "Warehouse_Name": "Warehouse Name", "Quantity_Available": "Quantity Available"})
     st.dataframe(df, hide_index=True)
 
     output = io.BytesIO()
@@ -93,7 +93,7 @@ def main():
 
     if selected_dates:
         for date in selected_dates:
-            total_quantity_date = df[df['Date of State'] == date]['Available Quantity'].sum()
+            total_quantity_date = df[df['Stock Date'] == date]['Quantity Available'].sum()
             st.metric(label=f"Total available product quantity for {date}", value=int(total_quantity_date))
         st.markdown('---')
 
@@ -103,13 +103,13 @@ def main():
         # Create a line chart using Plotly Express
         fig = px.line(
             chart_df, 
-            x='Data_State', # Set X axis to 'Data_State' column
-            y='Available_Quantity',  # Set Y axis to 'Available_Quantity' column
+            x='Stock_Date', # Set X axis to 'Data_State' column
+            y='Quantity_Available',  # Set Y axis to 'Available_Quantity' column
             color='Warehouse_Name', # Different line colors for each warehouse
             title='Changes in Available Product Quantity Over Time') # Chart title
         # Update chart layout - set axis titles
         fig.update_layout(xaxis_title='Date', # X axis title
-                          yaxis_title='Available Quantity') # Y axis title
+                          yaxis_title='Quantity Available') # Y axis title
         # Ensure Y axis starts from zero 
         fig.update_layout(yaxis=dict(rangemode='tozero'))
         fig.update_layout(xaxis=dict(tickmode='linear', dtick='D1'))

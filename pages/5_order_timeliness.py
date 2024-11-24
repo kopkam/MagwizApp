@@ -107,7 +107,7 @@ def display_supplier_data(df):
         st.markdown("---")
         
 # Creating charts for selected values
-    selected_value = 'On Time'  # The selected value will always be 'On Time'
+    selected_value = 'Completed on time'  # The selected value will always be 'On Time'
 
     # Filter data for the selected value
     filtered_status_df = filtered_df[filtered_df['Delivery Status'] == selected_value]
@@ -163,20 +163,20 @@ def display_supplier_data(df):
     st.markdown("---")
 
     # Default selection: 'On Time' and 'Late'
-    selected_values = ['On Time', 'Late']
+    selected_values = ['Completed on time', 'Completed with a delay']
 
     if not selected_values:
-        selected_values = ['On Time', 'Late']
+        selected_values = ['Completed on time', 'Completed with a delay']
     
     # Check selected values in the select box
     for selected_value in selected_values:
         # Filter data for the selected delivery status
-        if selected_value == 'On Time':
-            filtered_status_df = df[df['Delivery Status'] == 'On Time']
+        if selected_value == 'Completed on time':
+            filtered_status_df = df[df['Delivery Status'] == 'Completed on time']
             supplier_label = "Best Supplier"
             record_label = "Number of On-Time Deliveries"
-        elif selected_value == 'Late':
-            filtered_status_df = df[df['Delivery Status'] == 'Late']
+        elif selected_value == 'Completed with a delay':
+            filtered_status_df = df[df['Delivery Status'] == 'Completed with a delay']
             supplier_label = "Worst Supplier"
             record_label = "Number of Late Deliveries"
 
@@ -187,9 +187,9 @@ def display_supplier_data(df):
         count_by_supplier = filtered_status_df.groupby('Supplier Name').size().reset_index(name='Record Count')
 
         # Find the record with the highest or lowest number of records
-        if selected_value == 'On Time':
+        if selected_value == 'Completed on time':
             max_record = count_by_supplier.loc[count_by_supplier['Record Count'].idxmax()]
-        elif selected_value == 'Late':
+        elif selected_value == 'Completed with a delay':
             max_record = count_by_supplier.loc[count_by_supplier['Record Count'].idxmax()]
 
         # Creating information about the supplier in a similar style
@@ -253,7 +253,7 @@ def display_customer_data(df):
         st.markdown("---")
 
     # Creating charts for selected values
-    selected_value = 'Delivered on time'  # The selected value will always be 'Delivered on time'
+    selected_value = 'Completed on time'  # The selected value will always be 'Delivered on time'
 
     # Filtering data for the selected value
     filtered_status_df = filtered_df[filtered_df['Shipping Status'] == selected_value]
@@ -313,20 +313,20 @@ def display_customer_data(df):
 
     # Default selected statuses: 'Delivered on time' and 'Delivered late'
     if not selected_values:
-        selected_values = ['Delivered on time', 'Delivered late']  # If nothing is selected, select both statuses
+        selected_values = ['Completed on time', 'Completed with a delay']  # If nothing is selected, select both statuses
 
     for selected_value in selected_values:
         # Filtering data for the selected shipping status
-        if selected_value == 'Delivered on time':
-            filtered_status_df = df[df['Shipping Status'] == 'Delivered on time']
+        if selected_value == 'Completed on time':
+            filtered_status_df = df[df['Shipping Status'] == 'Completed on time']
             customer_label = "Best served customer"
             record_label = "Number of on-time deliveries"
-        elif selected_value == 'Delivered late':
-            filtered_status_df = df[df['Shipping Status'] == 'Delivered late']
+        elif selected_value == 'Completed with a delay':
+            filtered_status_df = df[df['Shipping Status'] == 'Completed with a delay']
             customer_label = "Worst served customer"
             record_label = "Number of delayed deliveries"
         else:
-            filtered_status_df = df[df['Shipping Status'] == 'Delivered late']
+            filtered_status_df = df[df['Shipping Status'] == 'Completed with a delay']
             customer_label = "Worst served customer"
             record_label = "Number of delayed deliveries"
 
@@ -337,9 +337,9 @@ def display_customer_data(df):
         count_by_customer = filtered_status_df.groupby('Customer Name').size().reset_index(name='Record Count')
 
         # Finding the record with the highest or lowest count
-        if selected_value == 'Delivered on time':
+        if selected_value == 'Completed on time':
             max_record = count_by_customer.loc[count_by_customer['Record Count'].idxmax()]
-        elif selected_value == 'Delivered late':
+        elif selected_value == 'Completed with a delay':
             max_record = count_by_customer.loc[count_by_customer['Record Count'].idxmax()]
 
         # Creating customer info in a similar style
@@ -349,5 +349,5 @@ def display_customer_data(df):
 # Select which option to display
 if option == "Delivery Timeliness":
     display_supplier_data(df)
-else option == "Shipping Timeliness":
+elif option == "Shipping Timeliness":
     display_customer_data(df)

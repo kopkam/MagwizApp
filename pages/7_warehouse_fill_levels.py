@@ -21,16 +21,16 @@ def load_data(selected_warehouses, selected_date):
     query = f"""
     SELECT 
         w.warehouse_name,
-        ROUND((SUM(p.volume_m3 * i.stock_quantity) / w.capacity) * 100, 2) AS fill_percentage
+        ROUND((SUM(p.unit_volume * ws.quantity_available) / w.capacity) * 100, 2) AS fill_percentage
     FROM 
         Warehouses w
     INNER JOIN 
-        Inventory i ON w.warehouse_id = i.warehouse_id
+        WarehouseStock ws ON w.warehouse_id = ws.warehouse_id
     INNER JOIN 
-        Products p ON i.product_code = p.product_code
+        Products p ON ws.product_code = p.product_code
     WHERE
         w.warehouse_name IN ({placeholders})
-        AND DATE(i.stock_date) = ?
+        AND DATE(ws.stock_date) = ?
     GROUP BY 
         w.warehouse_name, w.capacity;
     """
@@ -80,7 +80,7 @@ def create_gauge_chart(value, warehouse):
 # Function to load available dates
 def load_available_dates():
     conn = sqlite3.connect('db_inventory.db')
-    query = "SELECT DISTINCT DATE(stock_date) as available_date FROM Inventory ORDER BY available_date ASC"
+    query = "SELECT DISTINCT DATE(stock_date) as available_date FROM WarehouseStock ORDER BY available_date ASC"
     dates = pd.read_sql_query(query, conn)['available_date'].tolist()
     conn.close()
     return dates

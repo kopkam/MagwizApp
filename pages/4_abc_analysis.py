@@ -84,10 +84,9 @@ def main():
         # Filter data by selected dates
         filtered_df = df[(df['Order Date'] >= start_date.date()) & (df['Order Date'] <= end_date.date())]
         abc_df = analyze_abc(filtered_df)
-    
-        abc_df.drop(columns=['product_code', 'Order Date', 'sales_quantity'], inplace=True)
+        abc_df.drop(columns=['Product Code', 'Order Date', 'Sales Quantity'], inplace=True)
         abc_df.rename(columns={
-            'product_name': 'Product Name',
+            #'Product Name': 'Product Name',
             'Sales Total': 'Sales Total',
             'Sales Percentage': 'Sales Percentage',
             'Cumulative': 'Cumulative',

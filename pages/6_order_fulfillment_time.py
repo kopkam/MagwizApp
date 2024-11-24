@@ -14,25 +14,25 @@ def load_data(option):
         # SQL query for supplier data
         query = """
         SELECT 
-            DS.id_delivery AS 'Delivery Number',
+            DS.delivery_id AS 'Delivery Number',
             S.supplier_name AS 'Supplier Name', 
             DATE(DS.order_date) AS 'Order Date', 
             DATE(DS.delivery_date) AS 'Delivery Date', 
             (julianday(DS.delivery_date) - julianday(DS.order_date)) AS 'Lead Time (days)'
         FROM Deliveries DS
-        JOIN Suppliers S ON DS.id_supplier = S.id_supplier;
+        JOIN Suppliers S ON DS.supplier_id = S.supplier_id;
         """
     elif option == "Shipping Lead Time":
         # SQL query for customer data
         query = """
         SELECT 
-            O.id_order AS 'Order Number',
+            O.order_id AS 'Order Number',
             C.customer_name AS 'Customer Name', 
             DATE(O.order_date) AS 'Order Date', 
             DATE(O.shipping_date) AS 'Shipping Date', 
             (julianday(O.shipping_date) - julianday(O.order_date)) AS 'Lead Time (days)'
         FROM Orders O
-        JOIN Customers C ON O.id_customer = C.id_customer;
+        JOIN Customers C ON O.customer_id = C.customer_id;
         """
 
     # Execute the query and load results into a DataFrame

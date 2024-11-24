@@ -13,14 +13,14 @@ def connect_db():
 # Function to load data from the database
 def load_data(conn):
     query = """
-        SELECT DATE(sm.data_state) AS 'State Date',
+        SELECT DATE(sm.stock_date) AS 'Stock Date',
                p.product_name AS 'Product Name',
-               sm.available_quantity AS 'Available Quantity',
+               sm.quantity_available AS 'Quantity Available',
                p.safety_stock AS 'Safety Stock'
-        FROM InventoryStates sm
+        FROM WarehouseStock sm
         JOIN Products p ON sm.product_code = p.product_code
-        WHERE sm.available_quantity < p.safety_stock
-        ORDER BY sm.data_state, p.product_name
+        WHERE sm.quantity_available < p.safety_stock
+        ORDER BY sm.stock_date, p.product_name
     """
     df = pd.read_sql_query(query, conn)
     return df
@@ -36,17 +36,17 @@ def generate_plot(df, selected_dates, search_term):
     selected_dates.sort()
 
     for i, date in enumerate(selected_dates):
-        filtered_df = df[df['State Date'] == date]
+        filtered_df = df[df['Stock Date'] == date]
 
         if search_term:
             filtered_df = filtered_df[filtered_df['Product Name'].str.contains(search_term, case=False)]
 
-        shortages = abs(filtered_df['Available Quantity'] - filtered_df['Safety Stock']).sum()
+        shortages = abs(filtered_df['Quantity Available'] - filtered_df['Safety Stock']).sum()
 
         fig.add_trace(go.Bar(
             name=f'{date}',
-            x=['Available Quantity', 'Minimum Quantity'],
-            y=[filtered_df['Available Quantity'].sum(), shortages],
+            x=['Quantity Available', 'Minimum Quantity'],
+            y=[filtered_df['Quantity Available'].sum(), shortages],
             marker_color=colors[i % len(colors)]  # Use modulo to cycle through colors if more dates than colors
         ))
 
@@ -61,9 +61,9 @@ def main():
     df = load_data(conn)
     conn.close()
 
-    latest_date = df['State Date'].max()
+    latest_date = df['Stock Date'].max()
 
-    selected_dates = st.multiselect('Select dates to filter:', df['State Date'].unique(), default=[latest_date])
+    selected_dates = st.multiselect('Select dates to filter:', df['Stock Date'].unique(), default=[latest_date])
     
     # If no date is selected, use the most recent available date
     if not selected_dates:
@@ -72,13 +72,13 @@ def main():
     search_term = st.text_input("Enter product name to filter:")
 
     # Add a "Stock Difference" column
-    df['Missing Quantity'] = df['Safety Stock'] - df['Available Quantity']
+    df['Missing Quantity'] = df['Safety Stock'] - df['Quantity Available']
 
     # Display the filtered data table
-    filtered_df = df[df['State Date'].isin(selected_dates)]
+    filtered_df = df[df['Stock Date'].isin(selected_dates)]
     if search_term:
         filtered_df = filtered_df[filtered_df['Product Name'].str.contains(search_term, case=False)]
-    st.dataframe(filtered_df.drop(columns=['State Date']), hide_index=True)
+    st.dataframe(filtered_df.drop(columns=['Stock Date']), hide_index=True)
 
     # Add button to download the data as an Excel file
     output = io.BytesIO()
@@ -96,10 +96,10 @@ def main():
     # Display warehouse shortages for each selected date
     for date in selected_dates:
         # Filter data for the specific date
-        filtered_date_df = filtered_df[filtered_df['State Date'] == date]
+        filtered_date_df = filtered_df[filtered_df['Stock Date'] == date]
 
         # Calculate shortages for the selected date
-        shortages_date = abs(filtered_date_df['Available Quantity'] - filtered_date_df['Safety Stock']).sum()
+        shortages_date = abs(filtered_date_df['Quantity Available'] - filtered_date_df['Safety Stock']).sum()
 
         # Display the shortage count as a metric in the Streamlit app
         st.metric(label=f"Warehouse shortages for {date}", value=int(shortages_date))
