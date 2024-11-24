@@ -9,5 +9,5 @@ Order Timeliness (🚚): Monitor the timeliness of deliveries and shipments, and
 Order Fulfillment Time (⏱️): Track the time it takes to fulfill deliveries and orders to ensure timely deliveries and optimize logistics processes. \
 Warehouse Fill Levels (📈): Check warehouse fill levels and make decisions on their optimal usage. \
  \
-Products was extracted from Kaggle dataset: 
+Products data was extracted from Kaggle dataset: 
 https://www.kaggle.com/datasets/shudhanshusingh/250k-medicines-usage-side-effects-and-substitutes/data
