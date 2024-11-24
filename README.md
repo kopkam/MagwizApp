@@ -1,4 +1,4 @@
-Application build with Streamlit to visualize warehouse data
+Application build with Streamlit to visualize warehouse data  \
  \
 Application has 8 pages: \
 Data Exploration (🔍): Update and browse data related to warehouse activities to better understand trends and patterns. \
